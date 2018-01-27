@@ -46,7 +46,7 @@ public class mainWindow extends JFrame {
 	private static JTextField inputField;
 	private static JTextField outputField;
 	private JPanel typeSelection;
-	private JCheckBox chckbxNewCheckBox;
+	private JCheckBox writeAllLines;
 	private JList<String> list;
 	
 	private JButton startButton;
@@ -56,7 +56,6 @@ public class mainWindow extends JFrame {
 	private separator separator;
 	private JTextField textField;
 	private JTextField textField_2;
-	private JCheckBox writeAllLines;
 	
 	private JTextArea console;
 
@@ -158,16 +157,12 @@ public class mainWindow extends JFrame {
 		panel.add(panel_6, BorderLayout.NORTH);
 		panel_6.setLayout(new BoxLayout(panel_6, BoxLayout.Y_AXIS));
 		
-		writeAllLines = new JCheckBox("Alle Zeilen drucken");
-		panel_6.add(writeAllLines);
-		writeAllLines.setBackground(Color.WHITE);
-		
-		chckbxNewCheckBox = new JCheckBox("Erweiterte Zeilenausgabe");
-		chckbxNewCheckBox.setSelected(true);
-		chckbxNewCheckBox.addActionListener(new ActionListener() {
+		writeAllLines = new JCheckBox("Erweiterte Zeilenausgabe");
+		writeAllLines.setSelected(true);
+		writeAllLines.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				if (chckbxNewCheckBox.isSelected()) {
+				if (writeAllLines.isSelected()) {
 					List<Component> list = getAllComponents(typeSelection);
 					
 					for (Component c : list) c.setEnabled(true);
@@ -178,8 +173,8 @@ public class mainWindow extends JFrame {
 				}
 			}
 		});
-		panel_6.add(chckbxNewCheckBox);
-		chckbxNewCheckBox.setBackground(Color.WHITE);
+		panel_6.add(writeAllLines);
+		writeAllLines.setBackground(Color.WHITE);
 		
 		JPanel panel_7 = new JPanel();
 		panel_7.setBackground(Color.WHITE);
@@ -413,7 +408,7 @@ public class mainWindow extends JFrame {
 						Object[] options = {"nach Zeilen trennen", "normal fortfahren", "abbrechen"};
 						
 						int selection = JOptionPane.showOptionDialog(mainFrame,
-                                "Soll die Datei nach jeder " + separateAfterLines + ". Zeile getrennt werden oder soll normal fortgefahren werden",
+                                "Soll die Datei nach jeder " + separateAfterLines + ". Zeile getrennt werden oder soll normal fortgefahren werden?",
                                 "Alternativen",
                                 JOptionPane.DEFAULT_OPTION, 
                                 JOptionPane.INFORMATION_MESSAGE, 
@@ -425,7 +420,7 @@ public class mainWindow extends JFrame {
 					
 					int errorlevel = -1; // -1: kein Schleifendurchlauf
 					
-					if (writeAllLines.isSelected()) errorlevel = separator.separateFile(true);
+					if (!writeAllLines.isSelected()) errorlevel = separator.separateFile(true);
 					else errorlevel = separator.separateFile(false);
 					
 					if (errorlevel == -1) JOptionPane.showMessageDialog(null, "Das Programm konnte nicht gestartet werden.", "Fehler!", JOptionPane.ERROR_MESSAGE);
