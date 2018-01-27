@@ -17,7 +17,6 @@ import javax.swing.JButton;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
 import javax.swing.DropMode;
-import javax.swing.ImageIcon;
 import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JTextArea;
