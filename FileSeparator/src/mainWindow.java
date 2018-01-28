@@ -3,6 +3,7 @@ import java.awt.Dimension;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.JTextField;
@@ -58,6 +59,7 @@ public class mainWindow extends JFrame {
 	private JTextField textField_2;
 	
 	private JTextArea console;
+	private JScrollPane consoleSP;
 
 	private ArrayList<Pattern> separators = new ArrayList<Pattern>();
 	private ArrayList<Pattern> types = new ArrayList<Pattern>();
@@ -112,11 +114,19 @@ public class mainWindow extends JFrame {
 		inputOutputArea.add(outputPanel);
 		outputPanel.setLayout(new BorderLayout(0, 0));
 		
+		JPanel mainOutputPanel = new JPanel();
+		outputPanel.add(mainOutputPanel, BorderLayout.CENTER);
+		mainOutputPanel.setLayout(new BorderLayout(0, 0));
+		
 		outputField = new JTextField();
+		mainOutputPanel.add(outputField, BorderLayout.CENTER);
 		outputField.setColumns(10);
-		outputPanel.add(outputField, BorderLayout.CENTER);
 		
 		JButton button = new JButton("durchsuchen...");
+		mainOutputPanel.add(button, BorderLayout.EAST);
+		
+		JLabel lblOutput = new JLabel("Output:");
+		mainOutputPanel.add(lblOutput, BorderLayout.NORTH);
 		button.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				JFileChooser fc = new JFileChooser();
@@ -128,13 +138,19 @@ public class mainWindow extends JFrame {
 				if (fc.getSelectedFile() != null) outputField.setText(fc.getSelectedFile().getPath());
 			}
 		});
-		outputPanel.add(button, BorderLayout.EAST);
-		
-		JLabel lblOutput = new JLabel("Output:");
-		outputPanel.add(lblOutput, BorderLayout.NORTH);
 		
 		outputinInputFolder = new JCheckBox("selber Ordner wie Input");
 		outputinInputFolder.setBackground(Color.WHITE);
+		outputinInputFolder.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				if (outputinInputFolder.isSelected()) {
+					enableAllChildren(mainOutputPanel, false);
+				} else {
+					enableAllChildren(mainOutputPanel, true);
+				}
+			}
+		});
 		outputPanel.add(outputinInputFolder, BorderLayout.SOUTH);
 		
 		JPanel settingsArea = new JPanel();
@@ -163,13 +179,9 @@ public class mainWindow extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				if (writeAllLines.isSelected()) {
-					List<Component> list = getAllComponents(typeSelection);
-					
-					for (Component c : list) c.setEnabled(true);
+					enableAllChildren(typeSelection, true);
 				} else {
-					List<Component> list = getAllComponents(typeSelection);
-					
-					for (Component c : list) c.setEnabled(false);
+					enableAllChildren(typeSelection, false);
 				}
 			}
 		});
@@ -359,8 +371,8 @@ public class mainWindow extends JFrame {
 		console.setEditable(false);
 		console.setRows(3);
 		
-		JScrollPane sp = new JScrollPane(console);
-		startArea.add(sp, BorderLayout.CENTER);
+		consoleSP = new JScrollPane(console);
+		startArea.add(consoleSP, BorderLayout.CENTER);
 		
 		JPanel buttonPanel = new JPanel();
 		startArea.add(buttonPanel, BorderLayout.EAST);
@@ -439,6 +451,14 @@ public class mainWindow extends JFrame {
 
 	public void updateConsole() {
 		console.setText(separator.getConsoleText());
+		
+		// moves the viewport of the console to the bottom, so that the last messages can be read
+		JScrollBar vertical = consoleSP.getVerticalScrollBar();
+		vertical.setValue( vertical.getMaximum() );
+	}
+	
+	private void enableAllChildren(Container c, boolean value) {
+		for (Component comp : getAllComponents(c)) comp.setEnabled(value);
 	}
 	
 	private List<Component> getAllComponents(Container c) {
