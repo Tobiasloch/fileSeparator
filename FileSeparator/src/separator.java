@@ -55,14 +55,12 @@ public class separator implements Runnable {
 	
 	separator() {
 		separators = new ArrayList<Pattern>();
-		separators.add(Pattern.compile("00:00:00"));
 		console = new String();
 		console = "";
 		separateAfterLines = 0;
 		separateInputFiles = false;
 		
 		type = new ArrayList<Pattern>();
-		type.add(Pattern.compile("\\d\\d:\\d\\d:\\d\\d"));
 		}
 	
 	public int separateFile(boolean printAllLines)  { // 0: no exceptions; 1: file ist empty  2: file does not exist 3: create outputFile error 4: canceled 5: type fehlerhaft 6: Progress nicht bei 100 Prozent
@@ -98,10 +96,7 @@ public class separator implements Runnable {
 		
 		// creates new file
 		int fileCounter = 0;
-		
-		// initiating progressbar
-		// pogress counter
-		long progress = 0;
+
 		mainFrame.updateConsole();
 		
 		// declare used files
@@ -110,14 +105,22 @@ public class separator implements Runnable {
 		// read file
 		FileReader fr;
 			try {
+
+				// initiating progressbar
+				monitor = new ProgressMonitor(mainFrame, "Vorgang wird ausgeführt...", "", 0, 100);
+				
+				// pogress counter
+				long progress = 0;
+				
+				// calculating bytes to go through
+				long bytes = 0;
+				for (File f : inputFile) bytes+=f.length();
 				
 				for (; activeInputFile<inputFile.length; activeInputFile++) {
 					if (usedOutputFiles.indexOf(getActiveFile(outputSource, fileCounter)) == -1 && !createFile(getActiveFile(outputSource, fileCounter))) {
 						printConsole("Fehler (3): Die Dateien konnten nicht erstellt werden.");
 						stop(3);
 					}
-					
-					monitor = new ProgressMonitor(mainFrame, "Datei " + inputFile[activeInputFile].getName() + " wird bearbeitet...", "", 0, 100);
 					
 					fr = new FileReader(inputFile[activeInputFile]);
 					BufferedReader br = new BufferedReader(fr);
@@ -199,8 +202,8 @@ public class separator implements Runnable {
 						
 						// calculating progress
 						progress+= line.getBytes().length+2; // +2, da der Zeilenumbruch mit einberechnet werden muss
-						monitor.setProgress(getProgressinPercent(progress, inputFile[activeInputFile].length()));
-						monitor.setNote("Fortschritt: " + progress/1000 + "/" + inputFile[activeInputFile].length()/1000 + " KB");
+						monitor.setProgress(getProgressinPercent(progress, bytes));
+						monitor.setNote("Fortschritt: " + progress/1000 + "/" + bytes/1000 + " KB (Datei " + activeInputFile + ")");
 					}
 					
 					if (progress < inputFile[activeInputFile].length()) {
