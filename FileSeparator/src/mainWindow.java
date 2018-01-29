@@ -82,6 +82,7 @@ public class mainWindow extends JFrame {
 		setLocationRelativeTo(null);
 		
 		JSplitPane splitPane = new JSplitPane();
+		splitPane.setContinuousLayout(true);
 		splitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
 		contentPane.add(splitPane, BorderLayout.CENTER);
 		
