@@ -15,7 +15,7 @@ import javax.swing.ProgressMonitor;
 
 public class separator implements Runnable {
 	
-	private File inputFile;
+	private File[] inputFile;
 	private File outputSource;
 	
 	private boolean foundType;
@@ -35,17 +35,18 @@ public class separator implements Runnable {
 	private boolean stop;
 	private boolean printAllLines;
 	private boolean running;
+	private boolean separateInputFiles;
 	
 	public mainWindow mainFrame;
 	
-	separator(File inputFile, File outputSource, ArrayList<Pattern> type, ArrayList<Pattern> separators) {
+	separator(File[] inputFile, File outputSource, ArrayList<Pattern> type, ArrayList<Pattern> separators) {
 		this(inputFile, outputSource);
 
 		this.type = type;
 		this.separators = separators;
 	}
 	
-	separator(File inputFile, File outputSource) {
+	separator(File[] inputFile, File outputSource) {
 		this();
 		
 		this.inputFile = inputFile;
@@ -58,6 +59,7 @@ public class separator implements Runnable {
 		console = new String();
 		console = "";
 		separateAfterLines = 0;
+		separateInputFiles = false;
 		
 		type = new ArrayList<Pattern>();
 		type.add(Pattern.compile("\\d\\d:\\d\\d:\\d\\d"));
@@ -86,122 +88,133 @@ public class separator implements Runnable {
 	
 	@Override
 	public void run() {
-		monitor = new ProgressMonitor(mainFrame, "Datei " + inputFile.getName() + " wird bearbeitet...", "", 0, 100);
+		int activeInputFile = 0;
 		
 		if (inputFile == null) {
 			printConsole("Fehler (1): die uebergebene Datei ist leer.");
 			stop(1);
 		}
-		if (outputSource == null) outputSource = inputFile.getParentFile();
-		if (!inputFile.exists() || !outputSource.exists()) {
-			printConsole("Fehler (2): die Datei existiert nicht.");
-			stop(2);
-		}
+		if (outputSource == null) outputSource = inputFile[0];
 		
 		// creates new file
 		int fileCounter = 0;
-		if (!createFile(getActiveFile(fileCounter))) {
-			printConsole("Fehler (3): Die Dateien konnten nicht erstellt werden.");
-			stop(3);
-		}
 		
 		// initiating progressbar
 		// pogress counter
 		long progress = 0;
 		mainFrame.updateConsole();
 		
+		// declare used files
+		ArrayList<File> usedOutputFiles = new ArrayList<File>();
+		
 		// read file
 		FileReader fr;
-		try {
-			fr = new FileReader(inputFile);
-			BufferedReader br = new BufferedReader(fr);
-			
-			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(fileCounter))));
-			
-			// initiating line counter
-			int lineCounter = 0;
-			
-			// get first line
-			for (String line = br.readLine(); line != null && !stop; line = br.readLine()) {
-				// inkrement lineCounter
-				lineCounter++;
+			try {
 				
-				// if monitor is canceled
-				if (monitor.isCanceled()) {
-					br.close();
-					bw.close();
-					printConsole("Fehler (4): Der Vorgang wurde abgebrochen.");
-					stop(4);
-					break;
-				}
-				
-				if (!printAllLines) {
-					for (int i = 0; i < type.size(); i++) { // searches for the type pattern in the active line
-						Matcher m = type.get(i).matcher(line);
+				for (; activeInputFile<inputFile.length; activeInputFile++) {
+					if (usedOutputFiles.indexOf(getActiveFile(outputSource, fileCounter)) == -1 && !createFile(getActiveFile(outputSource, fileCounter))) {
+						printConsole("Fehler (3): Die Dateien konnten nicht erstellt werden.");
+						stop(3);
+					}
+					
+					monitor = new ProgressMonitor(mainFrame, "Datei " + inputFile[activeInputFile].getName() + " wird bearbeitet...", "", 0, 100);
+					
+					fr = new FileReader(inputFile[activeInputFile]);
+					BufferedReader br = new BufferedReader(fr);
+					
+					BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(outputSource, fileCounter))));
+					
+					// initiating line counter
+					int lineCounter = 0;
+					
+					// get first line
+					for (String line = br.readLine(); line != null && !stop; line = br.readLine()) {
+						// inkrement lineCounter
+						lineCounter++;
 						
-						if (m.find()) { // found the type and prints line
-							bw.write(line);
-							bw.newLine();
-							foundType = true;
-							
+						// if monitor is canceled
+						if (monitor.isCanceled()) {
+							br.close();
+							bw.close();
+							printConsole("Fehler (4): Der Vorgang wurde abgebrochen.");
+							stop(4);
 							break;
 						}
-					}
-				} else {
-					bw.write(line);
-					bw.newLine();
-				}
-				
-				if (separateAfterLines == 0) {
-					for (int i = 0; i < separators.size(); i++) { // searches for the separators in the active line
-						Matcher m = separators.get(i).matcher(line);
 						
-						if (m.find()) {
+						if (!printAllLines) {
+							for (int i = 0; i < type.size(); i++) { // searches for the type pattern in the active line
+								Matcher m = type.get(i).matcher(line);
+								
+								if (m.find()) { // found the type and prints line
+									bw.write(line);
+									bw.newLine();
+									foundType = true;
+									break;
+								}
+							}
+						} else {
+							bw.write(line);
+							bw.newLine();
+						}
+						
+						if (separateAfterLines == 0) {
+							for (int i = 0; i < separators.size(); i++) { // searches for the separators in the active line
+								Matcher m = separators.get(i).matcher(line);
+								
+								if (m.find()) {
+									fileCounter++;
+									foundSeparator = true;
+									
+									if (!createFile(getActiveFile(outputSource, fileCounter))) {
+										br.close();
+										bw.close();
+										stop(3);
+									}
+									printConsole("Datei " + getActiveFile(outputSource, fileCounter) + " wurde erstellt.");
+									mainFrame.updateConsole();
+									usedOutputFiles.add(getActiveFile(outputSource, fileCounter));
+									
+									bw.close();
+									bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(outputSource, fileCounter))));
+									break;
+								}
+							}
+						} else if (lineCounter % (separateAfterLines) == separateAfterLines-1) {
 							fileCounter++;
 							foundSeparator = true;
 							
-							if (!createFile(getActiveFile(fileCounter))) {
+							if (!createFile(getActiveFile(outputSource, fileCounter))) {
 								br.close();
 								bw.close();
 								stop(3);
+								break;
 							}
-							printConsole("Datei " + getActiveFile(fileCounter) + " wurde erstellt.");
+							printConsole("Datei " + getActiveFile(outputSource, fileCounter) + " wurde erstellt.");
 							mainFrame.updateConsole();
+							usedOutputFiles.add(getActiveFile(outputSource, fileCounter));
 							
 							bw.close();
-							bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(fileCounter))));
-							break;
+							bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(outputSource, fileCounter))));
 						}
+						
+						// calculating progress
+						progress+= line.getBytes().length+2; // +2, da der Zeilenumbruch mit einberechnet werden muss
+						monitor.setProgress(getProgressinPercent(progress, inputFile[activeInputFile].length()));
+						monitor.setNote("Fortschritt: " + progress/1000 + "/" + inputFile[activeInputFile].length()/1000 + " KB");
 					}
-				} else if (lineCounter % (separateAfterLines) == separateAfterLines-1) {
-					fileCounter++;
-					foundSeparator = true;
 					
-					if (!createFile(getActiveFile(fileCounter))) {
-						br.close();
-						bw.close();
-						stop(3);
-						break;
+					if (progress < inputFile[activeInputFile].length()) {
+						printConsole("Fehler (6): Es kann sein, dass nicht die komplette Datei gelesen wurde. activeFile(" + activeInputFile + ")");
+						stop(6);
 					}
-					printConsole("Datei " + getActiveFile(fileCounter) + " wurde erstellt.");
-					mainFrame.updateConsole();
 					
+					if (separateInputFiles) fileCounter++;
+					
+					br.close();
 					bw.close();
-					bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(fileCounter))));
 				}
-				
-				// calculating progress
-				progress+= line.getBytes().length+2; // +2, da der Zeilenumbruch mit einberechnet werden muss
-				monitor.setProgress(getProgressinPercent(progress, inputFile.length()));
-				monitor.setNote("Fortschritt: " + progress + "/" + inputFile.length() + " Bytes");
-			}
-			br.close();
-			bw.close();
 			
-			if (progress < inputFile.length()) {
-				printConsole("Fehler (6): Es kann sein, dass nicht die komplette Datei gelesen wurde.");
-				stop(6);
-			}
+			
 			
 		} catch (IOException e) {
 			printConsole("Fehler (2): Die Input Datei existiert nicht");
@@ -262,12 +275,16 @@ public class separator implements Runnable {
 		return false;
 	}
 	
-	File getActiveFile(int fileCounter) {
+	File getActiveFile(File inputFile, int fileCounter) {
 		int pointSeparator = inputFile.getName().indexOf('.');
 		
+		if (pointSeparator != -1) {
 		String type = inputFile.getName().substring(pointSeparator);
 		String name = inputFile.getName().substring(0, pointSeparator);
-		return new File(outputSource.getPath() + '\\' + name + " - " + fileCounter + type);
+		return new File(inputFile.getParent() + '\\' + name + " - " + fileCounter + type);
+		} else  {
+			return new File(inputFile.getPath() + " - " + fileCounter);
+		}
 	}
 	
 	boolean createFile(File file) {
@@ -314,11 +331,11 @@ public class separator implements Runnable {
 	
 	
 
-	public File getInputFile() {
+	public File[] getInputFile() {
 		return inputFile;
 	}
 
-	public void setInputFile(File inputFile) {
+	public void setInputFile(File[] inputFile) {
 		this.inputFile = inputFile;
 	}
 
@@ -344,6 +361,14 @@ public class separator implements Runnable {
 
 	public void setType(ArrayList<Pattern> type) {
 		this.type = type;
+	}
+
+	public boolean isSeparateInputFiles() {
+		return separateInputFiles;
+	}
+
+	public void setSeparateInputFiles(boolean separateInputFiles) {
+		this.separateInputFiles = separateInputFiles;
 	}
 	
 }
