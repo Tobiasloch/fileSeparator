@@ -15,7 +15,9 @@ import javax.swing.JScrollPane;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.SwingConstants;
+import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
 
 public class addInput {
 
@@ -97,7 +99,7 @@ public class addInput {
 		panel.setLayout(new BorderLayout(0, 0));
 		
 		InputFileChooser = new JFileChooser();
-		JButton btnDurchsuchen = new JButton("durchsuchen...");
+		JButton btnDurchsuchen = new JButton("Durchsuchen...");
 		btnDurchsuchen.setHorizontalAlignment(SwingConstants.RIGHT);
 		btnDurchsuchen.addActionListener(new ActionListener() {
 			@Override
@@ -119,27 +121,15 @@ public class addInput {
 				
 				if (sFiles != null && sFiles.length != 0) {
 					for (File f : sFiles) {
+						updateElements();
 						if (elements.indexOf(f.getPath()) == -1) { 
 							tModel.addRow(getObjectFromString(f.getPath()));
-							elements.add(f.getPath());
 						} else elementAlreadyExists();
 					}
 				}
 			}
 		});
 		panel.add(btnDurchsuchen, BorderLayout.EAST);
-		
-		JButton btnAdd = new JButton("neues Element");
-		btnAdd.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if (elements.indexOf("") == -1) {
-					tModel.addRow(getObjectFromString(""));
-					elements.add("");
-				} else elementAlreadyExists();
-			}
-		});
-		panel.add(btnAdd, BorderLayout.CENTER);
 		
 		JButton btnEntfernen = new JButton("Entfernen");
 		btnEntfernen.addActionListener(new ActionListener() {
@@ -152,10 +142,67 @@ public class addInput {
 					for (int i = 0; i < selectedRows.length; i++) {
 						int index = selectedRows[i] - i;
 						tModel.removeRow(index);
-						elements.remove(index);
 					}
 					
 				} else JOptionPane.showMessageDialog(frame, "Mindestens 1 Objekt muss ausgewählt sein!", "Fehler!", JOptionPane.ERROR_MESSAGE);
+			}
+		});
+		
+		JPanel newElement = new JPanel();
+		panel.add(newElement, BorderLayout.CENTER);
+		newElement.setLayout(new BorderLayout(0, 0));
+		
+		JButton btnAdd = new JButton("Neues Element");
+		newElement.add(btnAdd);
+		
+		JPanel upDownButtons = new JPanel();
+		newElement.add(upDownButtons, BorderLayout.EAST);
+		upDownButtons.setLayout(new BorderLayout(0, 0));
+		
+		JButton button = new BasicArrowButton(SwingConstants.NORTH);
+		button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (table.getSelectedRow() != -1) {
+					int selected = table.getSelectedRow();
+					
+					if (selected == 0) {
+						switchRow(table, 0, table.getRowCount()-1);
+						table.changeSelection(table.getRowCount()-1, 0, false, false);
+					}
+					else {
+						switchRow(table, table.getSelectedRow(), selected-1);
+						table.changeSelection(selected-1, 0, false, false);
+					}
+				}
+			}
+		});
+		upDownButtons.add(button, BorderLayout.NORTH);
+		
+		JButton button_1 = new BasicArrowButton(SwingConstants.SOUTH);
+		button_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				if (table.getSelectedRow() != -1) {
+					int selected = table.getSelectedRow();
+					
+					if (selected == table.getRowCount()-1) {
+						switchRow(table, 0, table.getRowCount()-1);
+						table.changeSelection(0, 0, false, false);
+					}
+					else {
+						switchRow(table, selected, selected+1);
+						table.changeSelection(selected + 1, 0, false, false);
+					}
+				}
+			}
+		});
+		upDownButtons.add(button_1, BorderLayout.SOUTH);
+		btnAdd.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				updateElements();
+				if (elements.indexOf("") == -1) {
+					tModel.addRow(getObjectFromString(""));
+				} else elementAlreadyExists();
 			}
 		});
 		panel.add(btnEntfernen, BorderLayout.WEST);
@@ -164,6 +211,7 @@ public class addInput {
 		btnOk.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				updateElements();
 				File[] files = getFilesFromElements();
 				for (int i = 0; i < files.length; i++) {
 					File f = files[i];
@@ -196,6 +244,14 @@ public class addInput {
 		panel.add(btnOk, BorderLayout.SOUTH);
 	}
 	
+	private static void switchRow(JTable table, int index1, int index2) {
+		TableModel tableModel = table.getModel();
+		
+		Object obj = tableModel.getValueAt(index2, 0);
+		tableModel.setValueAt(tableModel.getValueAt(index1, 0), index2, 0);
+		tableModel.setValueAt(obj, index1, 0);
+	}
+	
 	private void elementAlreadyExists() {
 		JOptionPane.showMessageDialog(frame, "Das eingegebene Element wurde bereits hinzugefügt.", "Fehler!", JOptionPane.ERROR_MESSAGE);
 	}
@@ -214,6 +270,12 @@ public class addInput {
 	
 	private Object[] getObjectFromString(String s) {
 		return new Object[] {s};
+	}
+	
+	private void updateElements() {
+		elements = new ArrayList<String>();
+		
+		for (int i = 0; i < tModel.getRowCount(); i++) elements.add((String) tModel.getValueAt(i, 0));
 	}
 	
 	public File[] getFilesFromElements() {

@@ -85,8 +85,121 @@ public class mainWindow extends JFrame {
 		splitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
 		contentPane.add(splitPane, BorderLayout.CENTER);
 		
+		SpinnerModel model = new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 100);
+		
+		DefaultListModel<String> listModel_2 = new DefaultListModel<String>();
+		listModel_2.addElement("00:00:00");
+		separators.add(Pattern.compile(listModel_2.get(0)));
+		
+		DefaultListModel<String> listModel = new DefaultListModel<String>();
+		listModel.addElement("\\d\\d:\\d\\d:\\d\\d");
+		types.add(Pattern.compile(listModel.get(0)));
+		
+		JPanel inputOutputArea = new JPanel();
+		splitPane.setLeftComponent(inputOutputArea);
+		inputOutputArea.setLayout(new BorderLayout(0, 0));
+		
+		JSplitPane inputOutputSplit = new JSplitPane();
+		inputOutputSplit.setResizeWeight(0.5);
+		inputOutputArea.add(inputOutputSplit, BorderLayout.CENTER);
+		
+		JPanel outputPanel = new JPanel();
+		inputOutputSplit.setRightComponent(outputPanel);
+		outputPanel.setBackground(Color.WHITE);
+		outputPanel.setLayout(new BorderLayout(0, 0));
+		
+		JPanel mainOutputPanel = new JPanel();
+		mainOutputPanel.setBackground(Color.WHITE);
+		outputPanel.add(mainOutputPanel, BorderLayout.NORTH);
+		mainOutputPanel.setLayout(new BorderLayout(0, 0));
+		
+		outputField = new JTextField();
+		mainOutputPanel.add(outputField, BorderLayout.CENTER);
+		outputField.setColumns(10);
+		
+		JButton button = new JButton("durchsuchen...");
+		mainOutputPanel.add(button, BorderLayout.EAST);
+		
+		JLabel lblOutput = new JLabel(" Output:");
+		mainOutputPanel.add(lblOutput, BorderLayout.NORTH);
+		button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				JFileChooser fc = new JFileChooser();
+				fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+				File f = new File(outputField.getText());
+				if (f.exists()) fc.setCurrentDirectory(f);
+				
+				fc.showSaveDialog(null);
+				if (fc.getSelectedFile() != null) outputField.setText(fc.getSelectedFile().getPath());
+			}
+		});
+		
+		JPanel inputPanel = new JPanel();
+		inputOutputSplit.setLeftComponent(inputPanel);
+		inputPanel.setBackground(Color.WHITE);
+		inputPanel.setLayout(new BorderLayout(0, 0));
+		
+		InputFrame = new addInput();
+		InputListModel = new DefaultListModel<String>();
+		
+		JList<String> InputList = new JList<String>(InputListModel);
+		InputList.addListSelectionListener(new ListSelectionListener() {
+			@Override
+			public void valueChanged(ListSelectionEvent event) {
+				String[] inputs = getListElements(InputListModel);
+				
+				if (outputinInputFolder!= null) {
+					if (outputinInputFolder.isSelected() && InputList.getSelectedIndex() != -1) {
+						File f = new File(inputs[InputList.getSelectedIndex()]);
+						
+						outputField.setText(f.getPath());
+					} else if (InputList.getSelectedIndex() == -1) outputField.setText("");
+				}
+			}
+		});
+		InputList.setVisibleRowCount(3);
+		JScrollPane InputListScroller = new JScrollPane(InputList);
+		inputPanel.add(InputListScroller, BorderLayout.CENTER);
+		
+		outputinInputFolder = new JCheckBox("selber Ordner wie ausgew\u00E4hlte Datei");
+		outputinInputFolder.setBackground(Color.WHITE);
+		outputinInputFolder.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				if (outputinInputFolder.isSelected()) {
+					if (InputList.getSelectedIndex() != -1) outputField.setText(InputListModel.getElementAt(InputList.getSelectedIndex()));
+					outputField.setEditable(false);
+					button.setEnabled(false);
+				} else {
+					outputField.setEditable(true);
+					button.setEnabled(true);
+				}
+			}
+		});
+		outputPanel.add(outputinInputFolder, BorderLayout.SOUTH);
+		
+		JLabel lblInput = new JLabel(" Input:");
+		inputPanel.add(lblInput, BorderLayout.NORTH);
+		
+		JButton btnDurchsuchen = new JButton("Bearbeiten");
+		btnDurchsuchen.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				ArrayList<String> elementList = new ArrayList<String>(Arrays.asList(getListElements(InputListModel)));
+				
+				InputFrame.setElements(elementList);
+				InputFrame.showOpenDialog(mainFrame);
+			}
+		});
+		inputPanel.add(btnDurchsuchen, BorderLayout.SOUTH);
+		
+		JSplitPane splitPane_1 = new JSplitPane();
+		splitPane_1.setResizeWeight(1.0);
+		splitPane_1.setContinuousLayout(true);
+		splitPane_1.setOrientation(JSplitPane.VERTICAL_SPLIT);
+		splitPane.setRightComponent(splitPane_1);
+		
 		JPanel settingsArea = new JPanel();
-		splitPane.setRightComponent(settingsArea);
+		splitPane_1.setLeftComponent(settingsArea);
 		settingsArea.setLayout(new BorderLayout(5, 5));
 		
 		JPanel checkBoxArea = new JPanel();
@@ -127,8 +240,6 @@ public class mainWindow extends JFrame {
 		panel_7.setBackground(Color.WHITE);
 		panel.add(panel_7, BorderLayout.SOUTH);
 		panel_7.setLayout(new BorderLayout(0, 0));
-		
-		SpinnerModel model = new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 100);
 		JLabel lblDateiTrennenNach = new JLabel("Datei trennen nach Zeilen");
 		panel_7.add(lblDateiTrennenNach, BorderLayout.NORTH);
 		JSpinner spinner = new JSpinner(model);
@@ -163,10 +274,6 @@ public class mainWindow extends JFrame {
 		textField_2 = new JTextField();
 		panel_4.add(textField_2, BorderLayout.CENTER);
 		textField_2.setColumns(10);
-		
-		DefaultListModel<String> listModel_2 = new DefaultListModel<String>();
-		listModel_2.addElement("00:00:00");
-		separators.add(Pattern.compile(listModel_2.get(0)));
 		JList<String> list_1 = new JList<String>(listModel_2);
 		list_1.setToolTipText("Wenn einer der Ausdruecke in einer Zeile gefunden wird, dann wird eine neue Datei angelegt.");
 		list_1.setForeground(Color.BLUE);
@@ -224,10 +331,6 @@ public class mainWindow extends JFrame {
 		JPanel panel_3 = new JPanel();
 		panel_2.add(panel_3, BorderLayout.SOUTH);
 		panel_3.setLayout(new GridLayout(0, 2, 0, 0));
-		
-		DefaultListModel<String> listModel = new DefaultListModel<String>();
-		listModel.addElement("\\d\\d:\\d\\d:\\d\\d");
-		types.add(Pattern.compile(listModel.get(0)));
 		list = new JList<String>(listModel);
 		list.setToolTipText("Wenn einer der Ausdruecke in einer Zeile gefunden wird, dann wird sie in die Output Datei geschrieben.");
 		list.setForeground(Color.BLUE);
@@ -290,105 +393,11 @@ public class mainWindow extends JFrame {
 		});
 		label.add(button_1, BorderLayout.EAST);
 		
-		JPanel inputOutputArea = new JPanel();
-		splitPane.setLeftComponent(inputOutputArea);
-		inputOutputArea.setLayout(new BorderLayout(0, 0));
 		
-		InputFrame = new addInput();
-		InputListModel = new DefaultListModel<String>();
-		
-		JSplitPane inputOutputSplit = new JSplitPane();
-		inputOutputSplit.setResizeWeight(0.5);
-		inputOutputArea.add(inputOutputSplit, BorderLayout.CENTER);
-		
-		JPanel outputPanel = new JPanel();
-		inputOutputSplit.setRightComponent(outputPanel);
-		outputPanel.setBackground(Color.WHITE);
-		outputPanel.setLayout(new BorderLayout(0, 0));
-		
-		JPanel mainOutputPanel = new JPanel();
-		mainOutputPanel.setBackground(Color.WHITE);
-		outputPanel.add(mainOutputPanel, BorderLayout.NORTH);
-		mainOutputPanel.setLayout(new BorderLayout(0, 0));
-		
-		outputField = new JTextField();
-		mainOutputPanel.add(outputField, BorderLayout.CENTER);
-		outputField.setColumns(10);
-		
-		JButton button = new JButton("durchsuchen...");
-		mainOutputPanel.add(button, BorderLayout.EAST);
-		
-		JLabel lblOutput = new JLabel(" Output:");
-		mainOutputPanel.add(lblOutput, BorderLayout.NORTH);
-		button.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				JFileChooser fc = new JFileChooser();
-				fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-				File f = new File(outputField.getText());
-				if (f.exists()) fc.setCurrentDirectory(f);
-				
-				fc.showSaveDialog(null);
-				if (fc.getSelectedFile() != null) outputField.setText(fc.getSelectedFile().getPath());
-			}
-		});
-		
-		JPanel inputPanel = new JPanel();
-		inputOutputSplit.setLeftComponent(inputPanel);
-		inputPanel.setBackground(Color.WHITE);
-		inputPanel.setLayout(new BorderLayout(0, 0));
-		
-		JList<String> InputList = new JList<String>(InputListModel);
-		InputList.addListSelectionListener(new ListSelectionListener() {
-			@Override
-			public void valueChanged(ListSelectionEvent event) {
-				String[] inputs = getListElements(InputListModel);
-				
-				if (outputinInputFolder!= null) {
-					if (outputinInputFolder.isSelected() && InputList.getSelectedIndex() != -1) {
-						File f = new File(inputs[InputList.getSelectedIndex()]);
-						
-						outputField.setText(f.getPath());
-					} else if (InputList.getSelectedIndex() == -1) outputField.setText("");
-				}
-			}
-		});
-		InputList.setVisibleRowCount(3);
-		JScrollPane InputListScroller = new JScrollPane(InputList);
-		inputPanel.add(InputListScroller, BorderLayout.CENTER);
-		
-		outputinInputFolder = new JCheckBox("selber Ordner wie ausgew\u00E4hlte Datei");
-		outputinInputFolder.setBackground(Color.WHITE);
-		outputinInputFolder.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent event) {
-				if (outputinInputFolder.isSelected()) {
-					if (InputList.getSelectedIndex() != -1) outputField.setText(InputListModel.getElementAt(InputList.getSelectedIndex()));
-					outputField.setEditable(false);
-					button.setEnabled(false);
-				} else {
-					outputField.setEditable(true);
-					button.setEnabled(true);
-				}
-			}
-		});
-		outputPanel.add(outputinInputFolder, BorderLayout.SOUTH);
-		
-		JLabel lblInput = new JLabel(" Input:");
-		inputPanel.add(lblInput, BorderLayout.NORTH);
-		
-		JButton btnDurchsuchen = new JButton("bearbeiten");
-		btnDurchsuchen.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				ArrayList<String> elementList = new ArrayList<String>(Arrays.asList(getListElements(InputListModel)));
-				
-				InputFrame.setElements(elementList);
-				InputFrame.showOpenDialog(mainFrame);
-			}
-		});
-		inputPanel.add(btnDurchsuchen, BorderLayout.SOUTH);
 		
 		JPanel startArea = new JPanel();
-		contentPane.add(startArea, BorderLayout.SOUTH);
+		
+		splitPane_1.setRightComponent(startArea);
 		startArea.setLayout(new BorderLayout(0, 0));
 		
 		console = new JTextArea();
@@ -397,6 +406,10 @@ public class mainWindow extends JFrame {
 		
 		consoleSP = new JScrollPane(console);
 		startArea.add(consoleSP, BorderLayout.CENTER);
+		
+		//startArea.setMinimumSize(new Dimension(mainFrame.getWidth(), console.getPreferredSize().height));
+		//startArea.setMaximumSize(new Dimension(mainFrame.getWidth(), 200));
+		//startArea.setPreferredSize(new Dimension(mainFrame.getWidth(), 100));
 		
 		JPanel buttonPanel = new JPanel();
 		startArea.add(buttonPanel, BorderLayout.EAST);
