@@ -71,6 +71,8 @@ public class mainWindow extends JFrame {
 	private mainWindow mainFrame = this;
 	
 	public mainWindow() {
+		separator = new separator();
+		
 		setTitle("Dateitrennsystem");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 600, 600);
@@ -448,7 +450,7 @@ public class mainWindow extends JFrame {
 					// checks if the output file exists and if its a file
 					File output;
 					output = new File(outputField.getText());
-					if (output.exists() == false) {
+					if (output.getParentFile().exists() == false) {
 						JOptionPane.showMessageDialog(null , "Der Ausgabepfad existiert nicht!",  "Fehler!", JOptionPane.ERROR_MESSAGE);
 						return;
 					} else if (output.isDirectory()) {

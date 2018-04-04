@@ -99,9 +99,6 @@ public class separator implements Runnable {
 
 		mainFrame.updateConsole();
 		
-		// declare used files
-		ArrayList<File> usedOutputFiles = new ArrayList<File>();
-		
 		// read file
 		FileReader fr;
 			try {
@@ -116,16 +113,16 @@ public class separator implements Runnable {
 				long bytes = 0;
 				for (File f : inputFile) bytes+=f.length();
 				
+				if (!createFile(getActiveFile(outputSource, fileCounter))) {
+					printConsole("Fehler (3): Die Dateien konnten nicht erstellt werden.");
+					stop(3);
+				}
+				
+				BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(outputSource, fileCounter))));
+				
 				for (; activeInputFile<inputFile.length; activeInputFile++) {
-					if (usedOutputFiles.indexOf(getActiveFile(outputSource, fileCounter)) == -1 && !createFile(getActiveFile(outputSource, fileCounter))) {
-						printConsole("Fehler (3): Die Dateien konnten nicht erstellt werden.");
-						stop(3);
-					}
-					
 					fr = new FileReader(inputFile[activeInputFile]);
 					BufferedReader br = new BufferedReader(fr);
-					
-					BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(outputSource, fileCounter))));
 					
 					// initiating line counter
 					int lineCounter = 0;
@@ -175,7 +172,6 @@ public class separator implements Runnable {
 									}
 									printConsole("Datei " + getActiveFile(outputSource, fileCounter) + " wurde erstellt.");
 									mainFrame.updateConsole();
-									usedOutputFiles.add(getActiveFile(outputSource, fileCounter));
 									
 									bw.close();
 									bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(outputSource, fileCounter))));
@@ -194,7 +190,6 @@ public class separator implements Runnable {
 							}
 							printConsole("Datei " + getActiveFile(outputSource, fileCounter) + " wurde erstellt.");
 							mainFrame.updateConsole();
-							usedOutputFiles.add(getActiveFile(outputSource, fileCounter));
 							
 							bw.close();
 							bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(outputSource, fileCounter))));
@@ -214,10 +209,9 @@ public class separator implements Runnable {
 					if (separateInputFiles) fileCounter++;
 					
 					br.close();
-					bw.close();
 				}
 			
-			
+				bw.close();
 			
 		} catch (IOException e) {
 			printConsole("Fehler (2): Die Input Datei existiert nicht");
