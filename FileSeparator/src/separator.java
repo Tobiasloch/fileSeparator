@@ -18,8 +18,10 @@ public class separator implements Runnable {
 	private File[] inputFile;
 	private File outputSource;
 	
-	private boolean foundType;
-	private boolean foundSeparator;
+	// wenn mindestens ein typ oder separator gefunden wurde. Wird benötigt um fehler zu finden
+	private boolean foundOneType;
+	private boolean foundOneSeparator;
+	private boolean separateAfterSeparator; // gibt an ob vor oder nach dem separator die datei getrennt werden soll
 	
 	private ArrayList<Pattern> type;
 	private ArrayList<Pattern> separators;
@@ -59,6 +61,7 @@ public class separator implements Runnable {
 		console = "";
 		separateAfterLines = 0;
 		separateInputFiles = false;
+		separateAfterSeparator = true;
 		
 		type = new ArrayList<Pattern>();
 		}
@@ -69,8 +72,8 @@ public class separator implements Runnable {
 		running = true;
 		this.printAllLines = printAllLines;
 		
-		foundSeparator = false;
-		foundType = false;
+		foundOneSeparator = false;
+		foundOneType = false;
 		
 		// setting up thread
 		Thread separateThread = new Thread(this);
@@ -86,7 +89,8 @@ public class separator implements Runnable {
 	
 	@Override
 	public void run() {
-		int activeInputFile = 0;
+		// wenn ein separator gefunden wurde
+		boolean foundSeparator = false;
 		
 		if (inputFile == null) {
 			printConsole("Fehler (1): die uebergebene Datei ist leer.");
@@ -94,9 +98,10 @@ public class separator implements Runnable {
 		}
 		if (outputSource == null) outputSource = inputFile[0];
 		
-		// creates new file
+		// counter resetten
 		int fileCounter = 0;
-
+		int activeInputFile = 0;
+		
 		mainFrame.updateConsole();
 		
 		// read file
@@ -113,14 +118,16 @@ public class separator implements Runnable {
 				long bytes = 0;
 				for (File f : inputFile) bytes+=f.length();
 				
-				if (!createFile(getActiveFile(outputSource, fileCounter))) {
+				// Datei erstellen und auf fehler Prüfen
+				if (!createFile(outputSource)) {
 					printConsole("Fehler (3): Die Dateien konnten nicht erstellt werden.");
 					stop(3);
 				}
 				
-				BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(outputSource, fileCounter))));
+				// den Bufferedwriter laden, welcher in die Datei schreibt
+				BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputSource)));
 				
-				for (; activeInputFile<inputFile.length; activeInputFile++) {
+				for (; activeInputFile<inputFile.length && !stop; activeInputFile++) {
 					fr = new FileReader(inputFile[activeInputFile]);
 					BufferedReader br = new BufferedReader(fr);
 					
@@ -141,28 +148,13 @@ public class separator implements Runnable {
 							break;
 						}
 						
-						if (!printAllLines) {
-							for (int i = 0; i < type.size(); i++) { // searches for the type pattern in the active line
-								Matcher m = type.get(i).matcher(line);
-								
-								if (m.find()) { // found the type and prints line
-									bw.write(line);
-									bw.newLine();
-									foundType = true;
-									break;
-								}
-							}
-						} else {
-							bw.write(line);
-							bw.newLine();
-						}
-						
-						if (separateAfterLines == 0) {
+						if (separateAfterLines == 0) { // wenn nicht nach einer bestimmten zeilenangabe getrennt werden soll
 							for (int i = 0; i < separators.size(); i++) { // searches for the separators in the active line
 								Matcher m = separators.get(i).matcher(line);
 								
 								if (m.find()) {
 									fileCounter++;
+									foundOneSeparator = true;
 									foundSeparator = true;
 									
 									if (!createFile(getActiveFile(outputSource, fileCounter))) {
@@ -173,13 +165,16 @@ public class separator implements Runnable {
 									printConsole("Datei " + getActiveFile(outputSource, fileCounter) + " wurde erstellt.");
 									mainFrame.updateConsole();
 									
-									bw.close();
-									bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(outputSource, fileCounter))));
+									if (!separateAfterSeparator) {
+										bw.close();
+										bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(outputSource, fileCounter))));
+									}
 									break;
 								}
 							}
 						} else if (lineCounter % (separateAfterLines) == separateAfterLines-1) {
 							fileCounter++;
+							foundOneSeparator = true;
 							foundSeparator = true;
 							
 							if (!createFile(getActiveFile(outputSource, fileCounter))) {
@@ -191,8 +186,35 @@ public class separator implements Runnable {
 							printConsole("Datei " + getActiveFile(outputSource, fileCounter) + " wurde erstellt.");
 							mainFrame.updateConsole();
 							
+							if (!separateAfterSeparator) {
+								bw.close();
+								bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(outputSource, fileCounter))));
+							}
+						}
+						
+						
+						// nach dem Zeileninhalt suchen, der ausgegeben werden soll
+						if (!printAllLines) {
+							for (int i = 0; i < type.size(); i++) { // searches for the type pattern in the active line
+								Matcher m = type.get(i).matcher(line);
+									
+								if (m.find()) { // found the type and prints line
+									bw.write(line);
+									bw.newLine();
+									foundOneType = true;
+									break;
+								}
+							}
+						} else {
+							bw.write(line);
+							bw.newLine();
+						}
+						
+						if (separateAfterSeparator && foundSeparator) {
 							bw.close();
 							bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getActiveFile(outputSource, fileCounter))));
+							
+							foundSeparator = false;
 						}
 						
 						// calculating progress
@@ -223,8 +245,8 @@ public class separator implements Runnable {
 		printConsole("Das Programm wurde beendet. Fehlercode(" + returnValue + ")");
 		monitor.close();
 		
-		if (!foundSeparator) printConsole("Es wurde keine neue Datei erstellt, bzw. kein Dateitrennausdruck wurde gefunden.");
-		if (!foundType) printConsole("Es wurde keine Zeile gedruckt.");
+		if (!foundOneSeparator) printConsole("Es wurde keine neue Datei erstellt, bzw. kein Dateitrennausdruck wurde gefunden.");
+		if (!foundOneType) printConsole("Es wurde keine Zeile gedruckt.");
 		
 		running = false;
 		mainFrame.updateConsole();
@@ -366,6 +388,14 @@ public class separator implements Runnable {
 
 	public void setSeparateInputFiles(boolean separateInputFiles) {
 		this.separateInputFiles = separateInputFiles;
+	}
+
+	public boolean isSeparateBeforeSeparator() {
+		return separateAfterSeparator;
+	}
+
+	public void setSeparateBeforeSeparator(boolean separateBeforeSeparator) {
+		this.separateAfterSeparator = separateBeforeSeparator;
 	}
 	
 }

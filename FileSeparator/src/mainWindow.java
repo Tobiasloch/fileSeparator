@@ -36,6 +36,8 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.Desktop;
 
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.JList;
@@ -51,6 +53,7 @@ public class mainWindow extends JFrame {
 	private JPanel typeSelection;
 	private JCheckBox writeAllLines;
 	private JList<String> list;
+	private JList<String> InputList;
 	
 	private JButton startButton;
 	
@@ -116,10 +119,6 @@ public class mainWindow extends JFrame {
 		outputPanel.add(mainOutputPanel, BorderLayout.NORTH);
 		mainOutputPanel.setLayout(new BorderLayout(0, 0));
 		
-		outputField = new JTextField();
-		mainOutputPanel.add(outputField, BorderLayout.CENTER);
-		outputField.setColumns(10);
-		
 		JButton button = new JButton("durchsuchen...");
 		mainOutputPanel.add(button, BorderLayout.EAST);
 		
@@ -130,9 +129,11 @@ public class mainWindow extends JFrame {
 				JFileChooser fc = new JFileChooser();
 				fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 				File f = new File(outputField.getText());
-				if (f.exists()) fc.setCurrentDirectory(f);
+
+				if (f.getParentFile() != null) fc.setCurrentDirectory(f.getParentFile());
+				else if (f.isDirectory()) fc.setCurrentDirectory(f);
 				
-				fc.showSaveDialog(null);
+				fc.showSaveDialog(mainFrame);
 				if (fc.getSelectedFile() != null) outputField.setText(fc.getSelectedFile().getPath());
 			}
 		});
@@ -145,7 +146,7 @@ public class mainWindow extends JFrame {
 		InputFrame = new addInput();
 		InputListModel = new DefaultListModel<String>();
 		
-		JList<String> InputList = new JList<String>(InputListModel);
+		InputList = new JList<String>(InputListModel);
 		InputList.addListSelectionListener(new ListSelectionListener() {
 			@Override
 			public void valueChanged(ListSelectionEvent event) {
@@ -164,6 +165,29 @@ public class mainWindow extends JFrame {
 		JScrollPane InputListScroller = new JScrollPane(InputList);
 		inputPanel.add(InputListScroller, BorderLayout.CENTER);
 		
+		outputField = new JTextField();
+		mainOutputPanel.add(outputField, BorderLayout.CENTER);
+		outputField.getDocument().addDocumentListener(new DocumentListener() {
+		    public void changedUpdate(DocumentEvent e) {}
+		    
+		    public void removeUpdate(DocumentEvent e) {
+		    	changed();
+		    }
+		    public void insertUpdate(DocumentEvent e) {
+		    	changed();
+		    }
+		    
+		    private void changed() {
+		    	if (InputList.getSelectedIndex() != -1) {
+		    		if (InputListModel.getElementAt(InputList.getSelectedIndex()).equals(outputField.getText())) {
+		    			outputinInputFolder.setSelected(true);
+		    		} else outputinInputFolder.setSelected(false);
+		    	}
+		    }
+		  }
+		);
+		outputField.setColumns(10);
+		
 		outputinInputFolder = new JCheckBox("selber Ordner wie ausgew\u00E4hlte Datei");
 		outputinInputFolder.setBackground(Color.WHITE);
 		outputinInputFolder.addActionListener(new ActionListener() {
@@ -171,11 +195,6 @@ public class mainWindow extends JFrame {
 			public void actionPerformed(ActionEvent event) {
 				if (outputinInputFolder.isSelected()) {
 					if (InputList.getSelectedIndex() != -1) outputField.setText(InputListModel.getElementAt(InputList.getSelectedIndex()));
-					outputField.setEditable(false);
-					button.setEnabled(false);
-				} else {
-					outputField.setEditable(true);
-					button.setEnabled(true);
 				}
 			}
 		});
@@ -239,6 +258,15 @@ public class mainWindow extends JFrame {
 		chckbxTrenneJedeInput.setBackground(Color.WHITE);
 		panel_6.add(chckbxTrenneJedeInput);
 		
+		JCheckBox chckbxNachDemTrennsymbol = new JCheckBox("Nach dem Trennsymbol trennen");
+		chckbxNachDemTrennsymbol.setBackground(Color.WHITE);
+		panel_6.add(chckbxNachDemTrennsymbol);
+		
+		JCheckBox chckbxHeaderinfirstline = new JCheckBox("Heade in der ersten Zeile");
+		chckbxHeaderinfirstline.setToolTipText("Wenn ausgew\u00E4hlt: Die erste Zeile jeder Datei wird nur einmal gedruckt");
+		chckbxHeaderinfirstline.setBackground(Color.WHITE);
+		panel_6.add(chckbxHeaderinfirstline);
+		
 		JPanel panel_7 = new JPanel();
 		panel_7.setBackground(Color.WHITE);
 		panel.add(panel_7, BorderLayout.SOUTH);
@@ -257,13 +285,36 @@ public class mainWindow extends JFrame {
 		lblNewLabel.setBackground(Color.WHITE);
 		lblNewLabel.setVerticalAlignment(SwingConstants.TOP);
 		
-		JPanel panel_1 = new JPanel();
-		settingsArea.add(panel_1, BorderLayout.CENTER);
-		panel_1.setLayout(new GridLayout(0, 2, 5, 5));
+		JPanel label = new JPanel();
+		settingsArea.add(label, BorderLayout.NORTH);
+		label.setLayout(new BorderLayout(0, 0));
+		
+		JLabel lblEinstellungen = new JLabel("Einstellungen:");
+		label.add(lblEinstellungen);
+		
+		JButton button_1 = new JButton("?");
+		button_1.setToolTipText("Dokumentation ueber regulaere Audruecke");
+		button_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				try {
+					URI url = new URI("https://www.kompf.de/java/regex.html");
+					
+					Desktop.getDesktop().browse(url);
+				} catch (URISyntaxException | IOException e) {
+					e.printStackTrace();
+				}
+				
+			}
+		});
+		label.add(button_1, BorderLayout.EAST);
+		
+		JPanel formatPanel = new JPanel();
+		settingsArea.add(formatPanel, BorderLayout.CENTER);
+		formatPanel.setLayout(new GridLayout(0, 2, 5, 5));
 		
 		JPanel separatorSelection = new JPanel();
 		separatorSelection.setBackground(Color.WHITE);
-		panel_1.add(separatorSelection);
+		formatPanel.add(separatorSelection);
 		separatorSelection.setLayout(new BorderLayout(0, 0));
 		
 		JPanel panel_4 = new JPanel();
@@ -318,7 +369,7 @@ public class mainWindow extends JFrame {
 		panel_5.add(btnEntfernen_1);
 		
 		typeSelection = new JPanel();
-		panel_1.add(typeSelection);
+		formatPanel.add(typeSelection);
 		typeSelection.setBackground(Color.WHITE);
 		typeSelection.setForeground(Color.LIGHT_GRAY);
 		typeSelection.setLayout(new BorderLayout(0, 0));
@@ -372,29 +423,6 @@ public class mainWindow extends JFrame {
 			}
 		});
 		panel_3.add(btnTypHinzufgen);
-		
-		JPanel label = new JPanel();
-		settingsArea.add(label, BorderLayout.NORTH);
-		label.setLayout(new BorderLayout(0, 0));
-		
-		JLabel lblEinstellungen = new JLabel("Einstellungen:");
-		label.add(lblEinstellungen);
-		
-		JButton button_1 = new JButton("?");
-		button_1.setToolTipText("Dokumentation ueber regulaere Audruecke");
-		button_1.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					URI url = new URI("https://www.kompf.de/java/regex.html");
-					
-					Desktop.getDesktop().browse(url);
-				} catch (URISyntaxException | IOException e) {
-					e.printStackTrace();
-				}
-				
-			}
-		});
-		label.add(button_1, BorderLayout.EAST);
 		
 		
 		
@@ -450,10 +478,7 @@ public class mainWindow extends JFrame {
 					// checks if the output file exists and if its a file
 					File output;
 					output = new File(outputField.getText());
-					if (output.getParentFile().exists() == false) {
-						JOptionPane.showMessageDialog(null , "Der Ausgabepfad existiert nicht!",  "Fehler!", JOptionPane.ERROR_MESSAGE);
-						return;
-					} else if (output.isDirectory()) {
+					if (output.isDirectory()) {
 						JOptionPane.showMessageDialog(null , "Der Ausgabepfad muss eine Datei sein!",  "Fehler!", JOptionPane.ERROR_MESSAGE);
 						return;
 					}
@@ -461,6 +486,7 @@ public class mainWindow extends JFrame {
 					separator = new separator(convertArrayListToArray(inputFiles), output);
 					
 					separator.mainFrame = mainFrame;
+					separator.setSeparateBeforeSeparator(chckbxNachDemTrennsymbol.isSelected());
 					separator.setSeparateInputFiles(chckbxTrenneJedeInput.isSelected());
 					separator.setType(types);
 					separator.setSeparators(separators);
@@ -530,6 +556,8 @@ public class mainWindow extends JFrame {
 		InputListModel.removeAllElements();
 		
 		for (String s : str) if (s!="") InputListModel.addElement(s);
+		
+		if (InputList.getSelectedIndex() == -1 && InputListModel.size() > 0) InputList.setSelectedIndex(0);
 	}
 	
 	public void updateConsole() {

@@ -11,5 +11,4 @@ public class mainClass {
 		mainWindow frame = new mainWindow();
 		frame.setVisible(true);
 	}
-
 }

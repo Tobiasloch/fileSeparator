@@ -1,3 +1,4 @@
+
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
@@ -13,6 +14,7 @@ import javax.swing.JTable;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.SwingConstants;
 import javax.swing.plaf.basic.BasicArrowButton;
@@ -21,7 +23,7 @@ import javax.swing.table.TableModel;
 
 public class addInput {
 
-	private JFrame frame;
+	private JDialog frame;
 	private JTable table;
 	private DefaultTableModel tModel;
 	private mainWindow mainFrame;
@@ -46,7 +48,11 @@ public class addInput {
 		
 		for (String s : elements) tModel.addRow(getObjectFromString(s));
 		frame.setLocationRelativeTo(mainFrame);
+		frame.setModal(true);
 		frame.setVisible(true);
+		
+		// selection to first index
+		if (table.getRowCount() > 0) table.setRowSelectionInterval(0, 0);
 	}
 	
 	public void closeWindow() {
@@ -57,7 +63,7 @@ public class addInput {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		frame = new JFrame();
+		frame = new JDialog(mainFrame);
 		frame.setBounds(100, 100, 450, 300);
 		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		frame.addWindowListener(new WindowListener() {
@@ -145,6 +151,11 @@ public class addInput {
 					}
 					
 				} else JOptionPane.showMessageDialog(frame, "Mindestens 1 Objekt muss ausgewählt sein!", "Fehler!", JOptionPane.ERROR_MESSAGE);
+				
+				// setze die ausgewählte zeile auf diejenige wo der aktuelle selected index ist bzw. ans ende der liste
+				if (selectedRows[0] < table.getRowCount()) {
+					table.setRowSelectionInterval(selectedRows[0], 0);
+				} else if (table.getRowCount() > 0) table.setRowSelectionInterval(table.getRowCount() - 1, 0);
 			}
 		});
 		
